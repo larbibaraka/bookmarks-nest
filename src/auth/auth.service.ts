@@ -12,7 +12,16 @@ export class AuthService {
     return 'sign in!!';
   }
 
-  signup({ email, password }: AuthDto) {
-    return 'sign up!!';
+  async signup({ email, password }: AuthDto) {
+    const hash = await argon.hash(password);
+    const user = await this.prisma.user.create({
+      data: {
+        email,
+        hash,
+      }
+    });
+
+    delete user.hash;
+    return user;
   }
 }

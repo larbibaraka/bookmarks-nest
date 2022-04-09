@@ -9,8 +9,24 @@ import { PrismaClientKnownRequestError } from '@prisma/client/runtime';
 export class AuthService {
   constructor(private prisma: PrismaService) {}
 
-  signin() {
-    return 'sign in!!';
+  async signin({ email, password }: AuthDto) {
+    const user = await this.prisma.user.findUnique({
+      where: {
+        email,
+      },
+    });
+
+    if (!user) throw new ForbiddenException('Credentials incorrect');
+
+    const pwMatches = await argon.verify(user.hash, password);
+
+    if (!pwMatches) throw new ForbiddenException('Credentials incorrect');
+
+    delete user.hash;
+
+    return user;
+
+    
   }
 
   async signup({ email, password }: AuthDto) {
@@ -27,9 +43,9 @@ export class AuthService {
       return user;
     } catch (error) {
       if (error instanceof PrismaClientKnownRequestError) {
-          if(error.code === 'P2002'){
-              throw new ForbiddenException('Credentials taken')
-          }
+        if (error.code === 'P2002') {
+          throw new ForbiddenException('Credentials taken');
+        }
       }
       throw error;
     }
